@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# This file is part of https://github.com/dehesselle/ccache_macos
+
+name: buileed
+on: push
+
+jobs:
+
+################################################################################
+
+  build:
+    runs-on: macos-10.15
+    env:
+      CCACHE_VERSION: 4.2
+    steps:
+
+    ### preparation ############################################################
+
+    # GitHub does not provide old SDKs like 10.11 (from Xcode 7.3.1). There is
+    # no official public download available from Apple and I don't trust 3rd
+    # party sources (e.g. "phracker"), so I'm enabling this job to download
+    # a compressed tarball that contains the SDK.
+    # In order to use this, you need to setup a repository secret named
+    # SDK_DOWNLOAD_URL and give a link to a .tar.xz file.
+    - name: install macOS SDK
+      env:
+        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+      if: env.SDK_DOWNLOAD_URL != null
+      run: |
+        curl -L ${{ secrets.SDK_DOWNLOAD_URL }} | tar -xJp
+        echo "SDKROOT=$GITHUB_WORKSPACE/$(basename ${SDK_DOWNLOAD_URL%%.tar.xz*})" >> $GITHUB_ENV
+
+    - name: install Ninja
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+        HOMEBREW_NO_INSTALL_CLEANUP: 1
+      run: brew install ninja
+
+    ### build ##################################################################
+
+    - name: download source
+      run: |
+        curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
+
+    - name: compile
+      env:
+        CMAKE_GENERATOR: Ninja
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install ../ccache-$CCACHE_VERSION
+        ninja
+        ninja install
+
+    ### create artifact ########################################################
+
+    - name: create archive
+      run: |
+        tar cJf ccache_v$CCACHE_VERSION.tar.xz ccache-$CCACHE_VERSION
+        shasum -a 256 ccache_v$CCACHE_VERSION.tar.xz > ccache_v$CCACHE_VERSION.tar.xz.sha256
+        cat ccache_v$CCACHE_VERSION.tar.xz.sha256
+
+    - name: upload ccache artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ccache
+        path: ${{ github.workspace }}/ccache_v${{ env.CCACHE_VERSION }}.tar.xz
+
+    - name: upload ccache checksum artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ccache_sha256
+        path: ${{ github.workspace }}/ccache_v${{ env.CCACHE_VERSION }}.tar.xz.sha256
