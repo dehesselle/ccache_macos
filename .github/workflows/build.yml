@@ -2,7 +2,7 @@
 #
 # This file is part of https://github.com/dehesselle/ccache_macos
 
-name: buileed
+name: build
 on: push
 
 jobs:
@@ -13,6 +13,8 @@ jobs:
     runs-on: macos-10.15
     env:
       CCACHE_VERSION: 4.2
+      BUILD_DIR: ${{ github.workspace }}/build
+      INSTALL_DIR: ${{ github.workspace }}/install
     steps:
 
     ### preparation ############################################################
@@ -40,16 +42,15 @@ jobs:
     ### build ##################################################################
 
     - name: download source
-      run: |
-        curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
+      run: curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
 
     - name: compile
       env:
         CMAKE_GENERATOR: Ninja
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install ../ccache-$CCACHE_VERSION
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+        cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ../ccache-$CCACHE_VERSION
         ninja
         ninja install
 
@@ -57,7 +58,7 @@ jobs:
 
     - name: create archive
       run: |
-        tar cJf ccache_v$CCACHE_VERSION.tar.xz ccache-$CCACHE_VERSION
+        tar -C $INSTALL_DIR -cJf $GITHUB_WORKSPACE/ccache_v$CCACHE_VERSION.tar.xz .
         shasum -a 256 ccache_v$CCACHE_VERSION.tar.xz > ccache_v$CCACHE_VERSION.tar.xz.sha256
         cat ccache_v$CCACHE_VERSION.tar.xz.sha256
 
