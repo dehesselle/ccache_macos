@@ -80,7 +80,9 @@ jobs:
         name: ccache
 
     - name: create release archive
-      run: tar cpJf ccache.tar.xz ccache ccache.sha256
+      run: |
+        chmod 755 ccache
+        tar cpJf ccache.tar.xz ccache ccache.sha256
 
     - name: create release
       id: release
