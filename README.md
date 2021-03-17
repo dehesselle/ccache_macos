@@ -1,6 +1,6 @@
 # ccache for macOS
 
-This is not a fork of [ccache](https://github.com/ccache/ccache) but an addon: the upstream project does not provide a binary release for macOS, so I build it myself.
+This is not a fork of [ccache](https://github.com/ccache/ccache) but an add-on: the upstream project does not provide a binary release for macOS, so I build it myself.
 
 ## building
 
