@@ -56,7 +56,9 @@ jobs:
     #------------------------------------------------------------------ artifact
 
     - name: generate checksum
-      run: shasum -a 256 $INSTALL_DIR/bin/ccache > $INSTALL_DIR/bin/ccache.sha256
+      run: |
+        cd $INSTALL_DIR/bin
+        shasum -a 256 ccache > ccache.sha256
 
     - name: upload workflow artifact
       uses: actions/upload-artifact@v2
