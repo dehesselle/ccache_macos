@@ -79,6 +79,9 @@ jobs:
       with:
         name: ccache
 
+    - name: create release archive
+      run: tar cpJf ccache.tar.xz ccache ccache.sha256
+
     - name: create release
       id: release
       uses: actions/create-release@v1
@@ -100,6 +103,6 @@ jobs:
         # erst hier nennen wir die versionnummer rein
         # das verbessern wir auch an mibap: kein bedarf für versionsnummer
         # hier, wir nehmen das Tag
-        asset_path: ccache.zip
-        asset_name: ccache_${{ github.ref }}.zip
+        asset_path: ccache.tar.xz
+        asset_name: ccache_${{ github.ref }}.tar.xz
         asset_content_type: application/octet-stream
