@@ -4,20 +4,19 @@
 
 name: build
 on: push
-
+env:
+  CCACHE_VERSION: 4.2
+  BUILD_DIR: ${{ github.workspace }}/build
+  INSTALL_DIR: ${{ github.workspace }}/install
 jobs:
 
 ################################################################################
 
   build:
     runs-on: macos-10.15
-    env:
-      CCACHE_VERSION: 4.2
-      BUILD_DIR: ${{ github.workspace }}/build
-      INSTALL_DIR: ${{ github.workspace }}/install
     steps:
 
-    ### preparation ############################################################
+    #------------------------------------------------------------------- prepare
 
     # GitHub does not provide old SDKs like 10.11 (from Xcode 7.3.1). There is
     # no official public download available from Apple and I don't trust 3rd
@@ -39,12 +38,12 @@ jobs:
         HOMEBREW_NO_INSTALL_CLEANUP: 1
       run: brew install ninja
 
-    ### build ##################################################################
+    #--------------------------------------------------------------------- build
 
     - name: download source
       run: curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
 
-    - name: compile
+    - name: build ccache
       env:
         CMAKE_GENERATOR: Ninja
       run: |
@@ -54,22 +53,51 @@ jobs:
         ninja
         ninja install
 
-    ### create artifact ########################################################
+    #------------------------------------------------------------------ artifact
 
-    - name: create archive
-      run: |
-        tar -C $INSTALL_DIR -cJf $GITHUB_WORKSPACE/ccache_v$CCACHE_VERSION.tar.xz .
-        shasum -a 256 ccache_v$CCACHE_VERSION.tar.xz > ccache_v$CCACHE_VERSION.tar.xz.sha256
-        cat ccache_v$CCACHE_VERSION.tar.xz.sha256
+    - name: generate checksum
+      run: shasum -a 256 $INSTALL_DIR/bin/ccache > $INSTALL_DIR/bin/ccache.sha256
 
-    - name: upload ccache artifact
+    - name: upload workflow artifact
       uses: actions/upload-artifact@v2
       with:
         name: ccache
-        path: ${{ github.workspace }}/ccache_v${{ env.CCACHE_VERSION }}.tar.xz
+        path: ${{ env.INSTALL_DIR }}/bin/*
 
-    - name: upload ccache checksum artifact
-      uses: actions/upload-artifact@v2
+################################################################################
+
+  release:
+    runs-on: macos-10.15
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+
+    - name: download build artifact
+      uses: actions/download-artifact@v2
       with:
-        name: ccache_sha256
-        path: ${{ github.workspace }}/ccache_v${{ env.CCACHE_VERSION }}.tar.xz.sha256
+        name: ccache
+
+    - name: create release
+      id: release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: true
+        prerelease: false
+
+    - name: upload ccache archive to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release.outputs.upload_url }}
+        #hirse: archive machen vom bin direkt
+        # erst hier nennen wir die versionnummer rein
+        # das verbessern wir auch an mibap: kein bedarf für versionsnummer
+        # hier, wir nehmen das Tag
+        asset_path: ccache.zip
+        asset_name: ccache_${{ github.ref }}.zip
+        asset_content_type: application/octet-stream
