@@ -93,6 +93,10 @@ jobs:
         draft: true
         prerelease: false
 
+    - name: get tag
+      id: get_tag
+      run: echo ::set-output name=value::${GITHUB_REF/refs\/tags\//}
+
     - name: upload ccache archive to release
       uses: actions/upload-release-asset@v1
       env:
@@ -104,5 +108,5 @@ jobs:
         # das verbessern wir auch an mibap: kein bedarf für versionsnummer
         # hier, wir nehmen das Tag
         asset_path: ccache.tar.xz
-        asset_name: ccache_${{ github.ref }}.tar.xz
+        asset_name: ccache_${{ steps.get_tag.outputs.value }}.tar.xz
         asset_content_type: application/octet-stream
