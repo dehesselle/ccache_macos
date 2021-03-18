@@ -105,10 +105,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        #hirse: archive machen vom bin direkt
-        # erst hier nennen wir die versionnummer rein
-        # das verbessern wir auch an mibap: kein bedarf für versionsnummer
-        # hier, wir nehmen das Tag
         asset_path: ccache.tar.xz
         asset_name: ccache_${{ steps.get_tag.outputs.value }}.tar.xz
         asset_content_type: application/octet-stream
