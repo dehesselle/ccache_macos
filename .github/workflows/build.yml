@@ -1,11 +1,10 @@
+# SPDX-FileCopyrightText: 2021 René de Hesselle <dehesselle@web.de>
 # SPDX-License-Identifier: MIT
-#
-# This file is part of https://github.com/dehesselle/ccache_macos
 
 name: build
 on: push
 env:
-  CCACHE_VERSION: 4.2
+  CCACHE_VERSION: 4.2.1
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 jobs:
