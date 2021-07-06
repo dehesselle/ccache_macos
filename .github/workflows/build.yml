@@ -17,19 +17,46 @@ jobs:
 
     #------------------------------------------------------------------- prepare
 
-    # GitHub does not provide old SDKs like 10.11 (from Xcode 7.3.1). There is
-    # no official public download available from Apple and I don't trust 3rd
-    # party sources (e.g. "phracker"), so I'm enabling this job to download
-    # a compressed tarball that contains the SDK.
+    # GitHub does not provide old SDKs on their runners. There is no official
+    # public download available from Apple and I don't trust 3rd party sources
+    # (e.g. "phracker"), so I'm enabling this job to download a compressed
+    # tarball that contains the SDK from a non-public source.
     # In order to use this, you need to setup a repository secret named
     # SDK_DOWNLOAD_URL and give a link to a .tar.xz file.
+    # At the moment, only 10.11.4 SDK is supported (hardcoded below).
     - name: install macOS SDK
+      if: env.SDK_DOWNLOAD_URL != null
       env:
         SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-      if: env.SDK_DOWNLOAD_URL != null
       run: |
         curl -L ${{ secrets.SDK_DOWNLOAD_URL }} | tar -xJp
         echo "SDKROOT=$GITHUB_WORKSPACE/$(basename ${SDK_DOWNLOAD_URL%%.tar.xz*})" >> $GITHUB_ENV
+
+    # Checkout repository to verify SDK...
+    - name: checkout sdkchecksum repository
+      if: env.SDK_DOWNLOAD_URL != null
+      env:
+        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+      uses: actions/checkout@v2
+      with:
+        repository: dehesselle/sdkchecksum
+        path: sdkchecksum
+        clean: false
+
+    # ...and use it to verify
+    - name: verify SDK
+      if: env.SDK_DOWNLOAD_URL != null
+      env:
+        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+      run: |
+        shasum -a 256 sdkchecksum/MacOSX10.11.4.sdk.sha256
+        if shasum -s -c $GITHUB_WORKSPACE/sdkchecksum/MacOSX10.11.4.sdk.sha256; then
+          echo "ok - SDK verified"
+          exit 0
+        else
+          echo "error - SDK verification failed"
+          exit 1
+        fi
 
     - name: install Ninja
       env:
