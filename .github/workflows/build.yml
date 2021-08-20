@@ -4,7 +4,7 @@
 name: build
 on: push
 env:
-  CCACHE_VERSION: 4.3
+  CCACHE_VERSION: 4.4
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 jobs:
@@ -75,7 +75,12 @@ jobs:
       run: |
         mkdir $BUILD_DIR
         cd $BUILD_DIR
-        cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ../ccache-$CCACHE_VERSION
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+          -DZSTD_FROM_INTERNET=ON \
+          -DHIREDIS_FROM_INTERNET=ON \
+          ../ccache-$CCACHE_VERSION
         ninja
         ninja install
 
