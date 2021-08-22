@@ -23,10 +23,10 @@ variables:
         -DHIREDIS_FROM_INTERNET=ON
         $CI_PROJECT_DIR/ccache-$CCACHE_VERSION
     - make && make install
-    - mv $CI_PROJECT_DIR/install/bin/ccache $CI_PROJECT_DIR
+    - tar -C $CI_PROJECT_DIR/install/bin -cpJf $CI_PROJECT_DIR/ccache.tar.xz ccache
   artifacts:
     paths:
-      - ccache
+      - ccache.tar.xz
 
 ccache:arm:
   extends: .build_template
