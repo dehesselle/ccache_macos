@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2021 René de Hesselle <dehesselle@web.de>
+#
+# SPDX-License-Identifier: MIT
+
+variables:
+  GIT_DEPTH: 1
+  GIT_SUBMODULE_STRATEGY: recursive
+  CCACHE_VERSION: "4.4"
+
+.build_template:
+  variables:
+    CMAKE_URL: https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1-macos-universal.tar.gz
+    CCACHE_URL: https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz
+  script:
+    - curl -L $CMAKE_URL  | tar -C $CI_PROJECT_DIR -xz
+    - curl -L $CCACHE_URL | tar -C $CI_PROJECT_DIR -xJ
+    - mkdir build; cd build
+    - $CI_PROJECT_DIR/$(basename -s .tar.gz $CMAKE_URL)/CMake.app/Contents/bin/cmake
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_GENERATOR="Unix Makefiles"
+        -DCMAKE_INSTALL_PREFIX=$CI_PROJECT_DIR/install
+        -DZSTD_FROM_INTERNET=ON
+        -DHIREDIS_FROM_INTERNET=ON
+        $CI_PROJECT_DIR/ccache-$CCACHE_VERSION
+    - make && make install
+    - mv $CI_PROJECT_DIR/install/bin/ccache $CI_PROJECT_DIR
+  artifacts:
+    paths:
+      - ccache
+
+ccache:arm:
+  extends: .build_template
+  stage: build
+  tags:
+    - bigsurarm
+
+ccache:i386:
+  extends: .build_template
+  stage: build
+  tags:
+    - highsierra
+  variables:
+    SDKROOT: /opt/sdks/MacOSX10.13.sdk
