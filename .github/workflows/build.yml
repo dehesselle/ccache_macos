@@ -129,7 +129,8 @@ jobs:
 
     - name: get tag
       id: get_tag
-      run: echo ::set-output name=value::${GITHUB_REF/refs\/tags\//}
+      # GITHUB_REF is 'refs/tags/<your tag>' and we only want '<your tag>'
+      run: echo ::set-output name=value::${GITHUB_REF##*/}
 
     - name: upload ccache archive to release
       uses: actions/upload-release-asset@v1
