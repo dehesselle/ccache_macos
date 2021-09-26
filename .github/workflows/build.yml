@@ -4,7 +4,7 @@
 name: build
 on: push
 env:
-  CCACHE_VERSION: 4.4
+  CCACHE_VERSION: 4.4.1
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 jobs:
@@ -17,13 +17,14 @@ jobs:
 
     #------------------------------------------------------------------- prepare
 
-    # GitHub does not provide old SDKs on their runners. There is no official
-    # public download available from Apple and I don't trust 3rd party sources
-    # (e.g. "phracker"), so I'm enabling this job to download a compressed
-    # tarball that contains the SDK from a non-public source.
+    # GitHub does not provide 10.13 SDK on their runners.
+    # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
+    # Official downloads from Apple are not publicly available. I don't trust
+    # 3rd party sources (e.g. "phracker"), so I'm using my own. My source
+    # is verifiable via checksums.
     # In order to use this, you need to setup a repository secret named
-    # SDK_DOWNLOAD_URL and give a link to a .tar.xz file.
-    # At the moment, only 10.11.4 SDK is supported (hardcoded below).
+    # SDK_DOWNLOAD_URL and provide a link to a .tar.xz file.
+    # At the moment, only 10.13.4 SDK is supported (hardcoded below).
     - name: install macOS SDK
       if: env.SDK_DOWNLOAD_URL != null
       env:
