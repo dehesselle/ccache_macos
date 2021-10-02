@@ -4,7 +4,7 @@
 name: build
 on: push
 env:
-  CCACHE_VERSION: 4.4.1
+  CCACHE_VERSION: 4.4.2
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 jobs:
@@ -28,7 +28,7 @@ jobs:
     # https://github.com/dehesselle/sdkchecksum
     #
     # In order to use your custom SDK_DOWNLOAD_URL, create a repository secret
-    # of said name and proivide a link to a .tar.xz file.
+    # of said name and provide a link to a .tar.xz file.
     # At the moment, only 10.11.4 SDK is supported (hardcoded below).
     - name: install macOS SDK
       if: env.SDK_DOWNLOAD_URL != null
