@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2021 René de Hesselle <dehesselle@web.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+
+  ##############################################################################
+
+  call_build:
+    uses: ./.github/workflows/build.yml
+    secrets:
+      SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+
+  ##############################################################################
+
+  release:
+    runs-on: macos-10.15
+    needs: call_build
+    steps:
+
+      - name: download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ccache
+
+      - name: create release asset
+        run: |
+          chmod 755 ccache
+          tar -cpJf ccache.tar.xz ccache ccache.sha256
+
+      - name: create release
+        id: release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+      - name: get tag
+        id: get_tag
+        # GITHUB_REF is 'refs/tags/<your tag>' and we only want '<your tag>'
+        run: echo ::set-output name=value::${GITHUB_REF##*/}
+
+      - name: upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ccache.tar.xz
+          asset_name: ccache_${{ steps.get_tag.outputs.value }}.tar.xz
+          asset_content_type: application/octet-stream

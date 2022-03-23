@@ -3,11 +3,19 @@
 # SPDX-License-Identifier: MIT
 
 name: build
-on: push
+on:
+  push:
+    branches:
+      - '*'
+  workflow_call:
+    secrets:
+      SDK_DOWNLOAD_URL:
+        required: true
 env:
   CCACHE_VERSION: 4.6
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
+
 jobs:
 
 ################################################################################
@@ -16,134 +24,90 @@ jobs:
     runs-on: macos-10.15
     steps:
 
-    #------------------------------------------------------------------- prepare
+      #----------------------------------------------------------------- prepare
 
-    # GitHub does not provide 10.11 SDK on their runners and no image older
-    # than Catalina. See here for what you can expect in their Catalina image:
-    # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
-    #
-    # Official downloads from Apple are not accessible without a developer
-    # account and I don't trust 3rd party sources (e.g. "phracker"). So I'm
-    # using my own (non-public) source, but I'm providing the means to verify
-    # what I'm doing, see here:
-    # https://github.com/dehesselle/sdkchecksum
-    #
-    # In order to use your custom SDK_DOWNLOAD_URL, create a repository secret
-    # of said name and provide a link to a .tar.xz file.
-    # At the moment, only 10.11.4 SDK is supported (hardcoded below).
-    - name: install macOS SDK
-      if: env.SDK_DOWNLOAD_URL != null
-      env:
-        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-      run: |
-        curl -L ${{ secrets.SDK_DOWNLOAD_URL }} | tar -xJp
-        echo "SDKROOT=$GITHUB_WORKSPACE/$(basename ${SDK_DOWNLOAD_URL%%.tar.xz*})" >> $GITHUB_ENV
+      # GitHub does not provide 10.11 SDK on their runners and no image older
+      # than Catalina. See here for what you can expect in their Catalina image:
+      # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
+      #
+      # Official downloads from Apple are not accessible without a developer
+      # account and I don't trust 3rd party sources (e.g. "phracker"). So I'm
+      # using my own (non-public) source, but I'm providing the means to verify
+      # what I'm doing, see here:
+      # https://github.com/dehesselle/sdkchecksum
+      #
+      # In order to use your custom SDK_DOWNLOAD_URL, create a repository secret
+      # of said name and provide a link to a .tar.xz file.
+      # At the moment, only 10.11.4 SDK is supported (hardcoded below).
+      - name: install macOS SDK
+        if: env.SDK_DOWNLOAD_URL != null
+        env:
+          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+        run: |
+          curl -L ${{ secrets.SDK_DOWNLOAD_URL }} | tar -xJp
+          echo "SDKROOT=$GITHUB_WORKSPACE/$(basename ${SDK_DOWNLOAD_URL%%.tar.xz*})" >> $GITHUB_ENV
 
-    # Checkout repository to verify SDK...
-    - name: checkout sdkchecksum repository
-      if: env.SDK_DOWNLOAD_URL != null
-      env:
-        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-      uses: actions/checkout@v2
-      with:
-        repository: dehesselle/sdkchecksum
-        path: sdkchecksum
-        clean: false
+      # Checkout repository to verify SDK...
+      - name: checkout sdkchecksum repository
+        if: env.SDK_DOWNLOAD_URL != null
+        env:
+          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+        uses: actions/checkout@v3
+        with:
+          repository: dehesselle/sdkchecksum
+          path: sdkchecksum
+          clean: false
 
-    # ...and use it to verify
-    - name: verify SDK
-      if: env.SDK_DOWNLOAD_URL != null
-      env:
-        SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-      run: |
-        shasum -a 256 sdkchecksum/MacOSX10.11.4.sdk.sha256
-        if shasum -s -c $GITHUB_WORKSPACE/sdkchecksum/MacOSX10.11.4.sdk.sha256; then
-          echo "ok - SDK verified"
-          exit 0
-        else
-          echo "error - SDK verification failed"
-          exit 1
-        fi
+      # ...and use it to verify
+      - name: verify SDK
+        if: env.SDK_DOWNLOAD_URL != null
+        env:
+          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+        run: |
+          shasum -a 256 sdkchecksum/MacOSX10.11.4.sdk.sha256
+          if shasum -s -c $GITHUB_WORKSPACE/sdkchecksum/MacOSX10.11.4.sdk.sha256; then
+            echo "ok - SDK verified"
+            exit 0
+          else
+            echo "error - SDK verification failed"
+            exit 1
+          fi
 
-    - name: install Ninja
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-        HOMEBREW_NO_INSTALL_CLEANUP: 1
-      run: brew install ninja
+      - name: install Ninja
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: brew install ninja
 
-    #--------------------------------------------------------------------- build
+      #------------------------------------------------------------------- build
 
-    - name: download source
-      run: curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
+      - name: download source
+        run: curl -L https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz | tar -xJp
 
-    - name: build ccache
-      env:
-        CMAKE_GENERATOR: Ninja
-      run: |
-        mkdir $BUILD_DIR
-        cd $BUILD_DIR
-        cmake \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-          -DZSTD_FROM_INTERNET=ON \
-          -DHIREDIS_FROM_INTERNET=ON \
-          ../ccache-$CCACHE_VERSION
-        ninja
-        ninja install
+      - name: build ccache
+        env:
+          CMAKE_GENERATOR: Ninja
+        run: |
+          mkdir $BUILD_DIR
+          cd $BUILD_DIR
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+            -DZSTD_FROM_INTERNET=ON \
+            -DHIREDIS_FROM_INTERNET=ON \
+            ../ccache-$CCACHE_VERSION
+          ninja
+          ninja install
 
-    #------------------------------------------------------------------ artifact
+      #---------------------------------------------------------------- artifact
 
-    - name: generate checksum
-      run: |
-        cd $INSTALL_DIR/bin
-        shasum -a 256 ccache > ccache.sha256
+      - name: generate checksum
+        run: |
+          cd $INSTALL_DIR/bin
+          shasum -a 256 ccache > ccache.sha256
 
-    - name: upload workflow artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: ccache
-        path: ${{ env.INSTALL_DIR }}/bin/*
-
-################################################################################
-
-  release:
-    runs-on: macos-10.15
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-
-    - name: download build artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: ccache
-
-    - name: create release archive
-      run: |
-        chmod 755 ccache
-        tar cpJf ccache.tar.xz ccache ccache.sha256
-
-    - name: create release
-      id: release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: true
-        prerelease: false
-
-    - name: get tag
-      id: get_tag
-      # GITHUB_REF is 'refs/tags/<your tag>' and we only want '<your tag>'
-      run: echo ::set-output name=value::${GITHUB_REF##*/}
-
-    - name: upload ccache archive to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ccache.tar.xz
-        asset_name: ccache_${{ steps.get_tag.outputs.value }}.tar.xz
-        asset_content_type: application/octet-stream
+      - name: upload workflow artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ccache
+          path: ${{ env.INSTALL_DIR }}/bin/*
