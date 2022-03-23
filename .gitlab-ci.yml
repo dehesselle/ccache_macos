@@ -2,10 +2,14 @@
 #
 # SPDX-License-Identifier: MIT
 
+stages:
+  - build
+  - release
+
 variables:
   GIT_DEPTH: 1
   GIT_SUBMODULE_STRATEGY: recursive
-  CCACHE_VERSION: "4.5.1"
+  CCACHE_VERSION: "4.6"
 
 .build_template:
   variables:
@@ -22,24 +26,33 @@ variables:
         -DZSTD_FROM_INTERNET=ON
         -DHIREDIS_FROM_INTERNET=ON
         $CI_PROJECT_DIR/ccache-$CCACHE_VERSION
-    - make && make install
-    - tar -C $CI_PROJECT_DIR/install/bin -cpJf $CI_PROJECT_DIR/ccache.tar.xz ccache
+    - make -j$(sysctl -n hw.ncpu) && make install
+    - tar -C $CI_PROJECT_DIR/install/bin -cpJf $CI_PROJECT_DIR/ccache_$(uname -m).tar.xz ccache
   artifacts:
     paths:
-      - ccache.tar.xz
+      - ccache_*.tar.xz
 
-ccache:arm:
+ccache:arm64:
   extends: .build_template
   stage: build
   tags:
     - bigsurarm
   variables:
-    SDKROOT: /opt/sdks/MacOSX11.sdk
+    SDKROOT: /opt/sdks/MacOSX11.3.sdk
 
-ccache:i386:
+ccache:x86_64:
   extends: .build_template
   stage: build
   tags:
-    - highsierra
+    - catalina
   variables:
-    SDKROOT: /opt/sdks/MacOSX10.13.sdk
+    SDKROOT: /opt/sdks/MacOSX10.11.4.sdk
+
+release:
+  stage: release
+  only:
+    - tags
+  image: python:3-alpine
+  script:
+    - pip3 install gitlab-release==5.1
+    - gitlab-release ccache_*.tar.xz
