@@ -44,7 +44,7 @@ ccache:x86_64:
   extends: .build_template
   stage: build
   tags:
-    - catalina
+    - bigsur
   variables:
     SDKROOT: /opt/sdks/MacOSX10.11.4.sdk
 
