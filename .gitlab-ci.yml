@@ -9,7 +9,7 @@ stages:
 variables:
   GIT_DEPTH: 1
   GIT_SUBMODULE_STRATEGY: recursive
-  CCACHE_VERSION: "4.6"
+  CCACHE_VERSION: "4.6.1"
 
 .build_template:
   variables:
