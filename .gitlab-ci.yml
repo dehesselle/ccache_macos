@@ -10,10 +10,26 @@ variables:
   GIT_DEPTH: 1
   GIT_SUBMODULE_STRATEGY: recursive
   CCACHE_VERSION: "4.6.1"
+  CMAKE_VERSION: "3.21.1"
 
-.build_template:
+#------------------------------------------------------------------------- build
+
+build:
+  stage: build
+  parallel:
+    matrix:
+      - RUNNER: [ "macosintel", "macosarm" ]
+  rules:
+    - if: $RUNNER == "macosintel"
+      variables:
+        SDKROOT: /opt/sdks/MacOSX10.11.4.sdk
+    - if: $RUNNER == "macosarm"
+      variables:
+        SDKROOT: /opt/sdks/MacOSX11.3.sdk
+  tags:
+    - ${RUNNER}
   variables:
-    CMAKE_URL: https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1-macos-universal.tar.gz
+    CMAKE_URL: https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-macos-universal.tar.gz
     CCACHE_URL: https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.xz
   script:
     - curl -L $CMAKE_URL  | tar -C $CI_PROJECT_DIR -xz
@@ -26,27 +42,14 @@ variables:
         -DZSTD_FROM_INTERNET=ON
         -DHIREDIS_FROM_INTERNET=ON
         $CI_PROJECT_DIR/ccache-$CCACHE_VERSION
-    - make -j$(sysctl -n hw.ncpu) && make install
+    - make -j$(sysctl -n hw.ncpu)
+    - make install
     - tar -C $CI_PROJECT_DIR/install/bin -cpJf $CI_PROJECT_DIR/ccache_$(uname -m).tar.xz ccache
   artifacts:
     paths:
       - ccache_*.tar.xz
 
-ccache:arm64:
-  extends: .build_template
-  stage: build
-  tags:
-    - bigsurarm
-  variables:
-    SDKROOT: /opt/sdks/MacOSX11.3.sdk
-
-ccache:x86_64:
-  extends: .build_template
-  stage: build
-  tags:
-    - bigsur
-  variables:
-    SDKROOT: /opt/sdks/MacOSX10.11.4.sdk
+#----------------------------------------------------------------------- release
 
 release:
   stage: release
