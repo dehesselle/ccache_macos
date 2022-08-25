@@ -12,7 +12,7 @@ on:
       SDK_DOWNLOAD_URL:
         required: true
 env:
-  CCACHE_VERSION: 4.6.1
+  CCACHE_VERSION: 4.6.2
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 
