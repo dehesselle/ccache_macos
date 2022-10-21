@@ -8,11 +8,8 @@ on:
     branches:
       - '*'
   workflow_call:
-    secrets:
-      SDK_DOWNLOAD_URL:
-        required: true
 env:
-  CCACHE_VERSION: 4.6.3
+  CCACHE_VERSION: 4.7
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 
@@ -25,54 +22,6 @@ jobs:
     steps:
 
       #----------------------------------------------------------------- prepare
-
-      # GitHub does not provide 10.11 SDK on their runners and no image older
-      # than Catalina. See here for what you can expect in their images:
-      # https://github.com/actions/virtual-environments/tree/main/images/macos
-      #
-      # Official downloads from Apple are not accessible without a developer
-      # account and I don't trust 3rd party sources (e.g. "phracker"). So I'm
-      # using my own (non-public) source, but I'm providing the means to verify
-      # its genuinity, see here:
-      # https://github.com/dehesselle/sdkchecksum
-      #
-      # In order to use your custom SDK_DOWNLOAD_URL, create a repository secret
-      # of said name and proivide a link to a .tar.xz file.
-      # At the moment, only 10.11.4 SDK is supported (hardcoded below).
-
-      - name: install macOS SDK
-        if: env.SDK_DOWNLOAD_URL != null
-        env:
-          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-        run: |
-          curl -L ${{ secrets.SDK_DOWNLOAD_URL }} | tar -xJp
-          echo "SDKROOT=$GITHUB_WORKSPACE/$(basename ${SDK_DOWNLOAD_URL%%.tar.xz*})" >> $GITHUB_ENV
-
-      # Checkout repository to verify SDK...
-      - name: checkout sdkchecksum repository
-        if: env.SDK_DOWNLOAD_URL != null
-        env:
-          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-        uses: actions/checkout@v3
-        with:
-          repository: dehesselle/sdkchecksum
-          path: sdkchecksum
-          clean: false
-
-      # ...and use it to verify
-      - name: verify SDK
-        if: env.SDK_DOWNLOAD_URL != null
-        env:
-          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
-        run: |
-          shasum -a 256 sdkchecksum/MacOSX10.11.4.sdk.sha256
-          if shasum -s -c $GITHUB_WORKSPACE/sdkchecksum/MacOSX10.11.4.sdk.sha256; then
-            echo "ok - SDK verified"
-            exit 0
-          else
-            echo "error - SDK verification failed"
-            exit 1
-          fi
 
       - name: install Ninja
         env:
