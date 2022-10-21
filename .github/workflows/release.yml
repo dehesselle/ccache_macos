@@ -46,7 +46,7 @@ jobs:
       - name: get tag
         id: get_tag
         # GITHUB_REF is 'refs/tags/<your tag>' and we only want '<your tag>'
-        run: echo ::set-output name=value::${GITHUB_REF##*/}
+        run: echo "value=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: upload release asset
         uses: actions/upload-release-asset@v1
