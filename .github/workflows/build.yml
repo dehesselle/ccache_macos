@@ -9,7 +9,7 @@ on:
       - '*'
   workflow_call:
 env:
-  CCACHE_VERSION: 4.7
+  CCACHE_VERSION: 4.7.4
   BUILD_DIR: ${{ github.workspace }}/build
   INSTALL_DIR: ${{ github.workspace }}/install
 
@@ -18,7 +18,7 @@ jobs:
 ################################################################################
 
   build:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
 
       #----------------------------------------------------------------- prepare
@@ -37,6 +37,7 @@ jobs:
       - name: build ccache
         env:
           CMAKE_GENERATOR: Ninja
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         run: |
           mkdir $BUILD_DIR
           cd $BUILD_DIR

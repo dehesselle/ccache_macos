@@ -9,7 +9,7 @@ stages:
 variables:
   GIT_DEPTH: 1
   GIT_SUBMODULE_STRATEGY: recursive
-  CCACHE_VERSION: "4.7"
+  CCACHE_VERSION: "4.7.4"
   CMAKE_VERSION: "3.21.1"
 
 #------------------------------------------------------------------------- build
@@ -22,7 +22,7 @@ build:
   rules:
     - if: $RUNNER == "macosintel"
       variables:
-        SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
+        MACOSX_DEPLOYMENT_TARGET: "10.13"
     - if: $RUNNER == "macosarm"
       variables:
         SDKROOT: /opt/sdks/MacOSX11.3.sdk
